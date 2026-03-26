@@ -2,11 +2,14 @@
 
 #include "utils/init.h"
 #include "utils/logger.h"
+#include "netdbg.h"
 #include "utils/tt_activity.h"
 #include "utils/utils.h"
 
 #include "reimpl/keycodes.h"
 
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <psp2/ctrl.h>
@@ -67,6 +70,15 @@ void controls_init() {
 
 #define BIT_TO_FLOAT(flags, bit) ((flags & bit) == bit ? 1.0f : 0.0f)
 
+// Right stick raw values — shared with patch.c NuPadRead hook
+float g_rightStickX = 0.0f;
+float g_rightStickY = 0.0f;
+uint8_t g_rawRX = 128;
+uint8_t g_rawRY = 128;
+
+// nupad_s pointer captured by NuPadRead hook
+extern volatile void *g_nupad_ptr;
+
 void poll_pad() {
     static uint32_t old_buttons = 0;
     static SceCtrlData pad;
@@ -91,6 +103,11 @@ void poll_pad() {
     const float lY = (float) pad.ly / 255.0f * 2.0f - 1.0f;
     const float rX = (float) pad.rx / 255.0f * 2.0f - 1.0f;
     const float rY = (float) pad.ry / 255.0f * 2.0f - 1.0f;
+
+    g_rightStickX = rX;
+    g_rightStickY = rY;
+    g_rawRX = pad.rx;
+    g_rawRY = pad.ry;
 
     activity.nativeUpdateGamepadAxisValues(&jni, ACTIVITY_CLASS, hatX, hatY, lX, lY, rX, rY);
 
@@ -166,6 +183,16 @@ void *controls_thread() {
     while (1) {
         poll_touch();
         poll_pad();
+
+        // Continuous overwrite at 120Hz — catches any pipeline overwrites
+        // between NuPadRead hook and camera byte reads
+        volatile void *ptr = g_nupad_ptr;
+        if (ptr) {
+            uint8_t *p = (uint8_t *)ptr;
+            p[0xA0] = g_rawRX;
+            p[0xA1] = g_rawRY;
+        }
+
         sceKernelDelayThread((1 * 1000 * 1000) / 120);
     }
 
@@ -242,6 +269,7 @@ void tt_activity_surface_created(jobject surface) {
 }
 
 int main() {
+    netdbg_init();
     soloader_init_all();
 
     ((JNIEXPORT jint(*)(JavaVM *, void *)) so_symbol(&so_mod, "JNI_OnLoad"))(&jvm, NULL);

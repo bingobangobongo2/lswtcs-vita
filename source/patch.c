@@ -13,7 +13,11 @@
  */
 
 #include <psp2/kernel/threadmgr.h>
+#include <psp2/kernel/clib.h>
+#include <psp2/io/fcntl.h>
 
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <kubridge.h>
@@ -28,11 +32,59 @@
 
 extern so_module so_mod;
 
+extern uint8_t g_rawRX;
+extern uint8_t g_rawRY;
+
+// Captured nupad_s pointer for controls_thread continuous overwrite
+volatile void *g_nupad_ptr = NULL;
+
+so_hook NuPadRead_hook;
+
+static int diag_counter = 0;
+static int diag_lines = 0;
+
+int NuPadRead_soloader(void *nupad) {
+    uint8_t *p = (uint8_t *)nupad;
+
+    // Snapshot BEFORE original runs (previous frame's residual)
+    uint8_t prev_a0 = p[0xA0], prev_a1 = p[0xA1];
+
+    int ret = SO_CONTINUE(int, NuPadRead_hook, nupad);
+
+    // Snapshot AFTER original pipeline
+    uint8_t orig_a0 = p[0xA0], orig_a1 = p[0xA1];
+
+    g_nupad_ptr = nupad;
+
+    // Overwrite right stick bytes only (0xA0=RS_X, 0xA1=RS_Y)
+    p[0xA0] = g_rawRX;
+    p[0xA1] = g_rawRY;
+
+    // Log once/sec for 2 min — wiggle stick in all 4 directions
+    if (diag_lines < 120 && ++diag_counter >= 60) {
+        diag_counter = 0;
+        diag_lines++;
+        SceUID fd = sceIoOpen("ux0:/data/lswtcs/stick_log.txt",
+                               SCE_O_WRONLY | SCE_O_CREAT | SCE_O_APPEND, 0666);
+        if (fd >= 0) {
+            char buf[200];
+            int len = sceClibSnprintf(buf, sizeof(buf),
+                "raw=%3d,%3d orig=%3d,%3d prev=%3d,%3d\n",
+                g_rawRX, g_rawRY,
+                orig_a0, orig_a1,
+                prev_a0, prev_a1);
+            sceIoWrite(fd, buf, len);
+            sceIoClose(fd);
+        }
+    }
+
+    return ret;
+}
+
 so_hook _Z11AndroidMainPv_hook;
 
 /// AndroidMain(void*)
 void *_Z11AndroidMainPv_soloader(void *param_1) {
-    sceKernelChangeThreadCpuAffinityMask(sceKernelGetThreadId(), SCE_KERNEL_CPU_MASK_USER_0);
     return SO_CONTINUE(void*, _Z11AndroidMainPv_hook, param_1);
 }
 
@@ -40,7 +92,6 @@ so_hook _Z17renderThread_mainPv_hook;
 
 /// renderThread_main(void*)
 void *_Z17renderThread_mainPv_soloader(void *param_1) {
-    sceKernelChangeThreadCpuAffinityMask(sceKernelGetThreadId(), SCE_KERNEL_CPU_MASK_USER_1);
     return SO_CONTINUE(void*, _Z17renderThread_mainPv_hook, param_1);
 }
 
@@ -89,7 +140,6 @@ so_hook _ZN8NuThread10ThreadMainEPv_hook;
 
 /// NuThread::ThreadMain(void*)
 void *_ZN8NuThread10ThreadMainEPv_soloader(void *param_1) {
-    sceKernelChangeThreadCpuAffinityMask(sceKernelGetThreadId(), SCE_KERNEL_CPU_MASK_USER_2);
     return SO_CONTINUE(void*, _ZN8NuThread10ThreadMainEPv_hook, param_1);
 }
 
@@ -109,6 +159,11 @@ int NuFileOpen_soloader(char *param_1, int param_2) {
 #endif
 
 void so_patch(void) {
+    // Right stick fix: hook NuPadRead to overwrite right stick bytes
+    // after the original's broken float→byte conversion
+    NuPadRead_hook = hook_addr((uintptr_t) so_symbol(&so_mod, "NuPadRead"),
+                               (uintptr_t) &NuPadRead_soloader);
+
     _Z11AndroidMainPv_hook = hook_addr((uintptr_t) so_symbol(&so_mod, "_Z11AndroidMainPv"),
                                        (uintptr_t) &_Z11AndroidMainPv_soloader);
 

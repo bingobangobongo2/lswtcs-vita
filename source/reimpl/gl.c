@@ -113,7 +113,7 @@ void glCompressedTexImage2D_soloader(GLenum target, GLint level, GLenum internal
 #endif
 
     const size_t i = target == GL_TEXTURE_2D ? 0 : 1;
-    glCompressedTextureImage2D(current_context->textures[current_context->texture * 2 + i], target, level,
+    glCompressedTextureImage2D(current_context->textures[current_context->texture * 2 + i], level,
                                internalformat, width, height, border, imageSize, data);
 }
 
@@ -132,9 +132,6 @@ void glCopyTexImage2D_soloader(GLenum target, GLint level, GLenum internalformat
 
     if (current_context->is_pbuffer == EGL_FALSE) {
         glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
-    } else {
-        l_error("glCopyTexImage2D called from a pbuffer context");
-        //glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
     }
 }
 
@@ -252,7 +249,7 @@ void glTexImage2D_soloader(GLenum target, GLint level, GLint internalformat, GLs
 #endif
 
     const size_t i = target == GL_TEXTURE_2D ? 0 : 1;
-    glTextureImage2D(current_context->textures[current_context->texture * 2 + i], target, level, internalformat,
+    glTextureImage2D(current_context->textures[current_context->texture * 2 + i], level, internalformat,
                      width, height, border, format, type, pixels);
 }
 
@@ -268,7 +265,7 @@ void glTexParameteri_soloader(GLenum target, GLenum pname, GLint param) {
 #endif
 
     const size_t i = target == GL_TEXTURE_2D ? 0 : 1;
-    glTextureParameteri(current_context->textures[current_context->texture * 2 + i], target, pname, param);
+    glTextureParameteri(current_context->textures[current_context->texture * 2 + i], pname, param);
 }
 
 void glUniform1fv_soloader(GLint location, GLsizei count, const GLfloat *value) {

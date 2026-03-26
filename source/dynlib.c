@@ -106,6 +106,10 @@ int __vsprintf_chk(char *dst, int flags, size_t dst_len_from_compiler, const cha
     return vsprintf(dst, format, va);
 }
 
+EGLBoolean eglSwapBuffers_soloader(EGLDisplay display, EGLSurface surface) {
+    return eglSwapBuffers(display, surface);
+}
+
 void *dlsym_soloader(void *handle, const char *symbol) {
     // Usage example:
     // if (strcmp("AMotionEvent_getAxisValue", symbol) == 0)
@@ -306,7 +310,7 @@ so_default_dynlib default_dynlib[] = {
         { "eglInitialize", (uintptr_t)&eglInitialize },
         { "eglMakeCurrent", (uintptr_t)&eglMakeCurrent },
         { "eglQuerySurface", (uintptr_t)&eglQuerySurface },
-        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers },
+        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers_soloader },
 
 
         // OpenGL

@@ -6,6 +6,7 @@
  */
 
 #include "utils/logger.h"
+#include "netdbg.h"
 
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/threadmgr.h>
@@ -75,6 +76,7 @@ void _log_print(int t, const char* fmt, ...) {
     sceClibVsnprintf(buffer_b, sizeof(buffer_b), buffer_a, list);
     va_end(list);
     sceClibPrintf(buffer_b);
+    netdbg_send(buffer_b);
 
     if (atomic_load_explicit(&_log_mutex_ready, memory_order_relaxed)) {
         sceKernelUnlockLwMutex(&_log_mutex, 1);

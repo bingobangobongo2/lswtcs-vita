@@ -61,6 +61,12 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(FALSOJNI_DEBUGLEVEL=1)
 endif()
 
+# Network debug logging (set NETDBG_IP to your PC's IP to enable)
+set(NETDBG_IP "" CACHE STRING "PC IP for network debug logging (leave empty to disable)")
+if(NETDBG_IP)
+    add_compile_definitions(NETDBG_ENABLED NETDBG_IP="${NETDBG_IP}")
+endif()
+
 # makes sincos, sincosf, etc. visible
 add_compile_definitions(_GNU_SOURCE __POSIX_VISIBLE=999999)
 
@@ -103,6 +109,7 @@ add_dependencies(${CMAKE_PROJECT_NAME} SceLibcBridge)
 
 target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM
                            PUBLIC ${CMAKE_SOURCE_DIR}/lib
+                           PUBLIC ${CMAKE_SOURCE_DIR}/../../../tools
                            )
 
 target_include_directories(${CMAKE_PROJECT_NAME}
@@ -145,18 +152,27 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
                       ScePower_stub
                       SceTouch_stub
                       SceVshBridge_stub
+                      SceIofilemgr_stub
+                      debugnet
+                      SceNet_stub
+                      SceNetCtl_stub
 )
 
 vita_create_self(eboot.bin ${CMAKE_PROJECT_NAME} UNSAFE NOASLR)
+set(VPK_FILES
+    FILE ${CMAKE_SOURCE_DIR}/extras/livearea/icon0.png sce_sys/icon0.png
+    ${CMAKE_SOURCE_DIR}/extras/livearea/pic0.png sce_sys/pic0.png
+    ${CMAKE_SOURCE_DIR}/extras/livearea/startup.png sce_sys/livearea/contents/startup.png
+    ${CMAKE_SOURCE_DIR}/extras/livearea/bg0.png sce_sys/livearea/contents/bg0.png
+    ${CMAKE_SOURCE_DIR}/extras/livearea/template.xml sce_sys/livearea/contents/template.xml
+)
+if (${SHADER_FORMAT} STREQUAL "GXP")
+  list(APPEND VPK_FILES ${CMAKE_SOURCE_DIR}/shaders/gxp gxp)
+endif()
 vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 VERSION ${VITA_VERSION}
                 NAME ${VITA_APP_NAME}
-                FILE ${CMAKE_SOURCE_DIR}/extras/livearea/icon0.png sce_sys/icon0.png
-                ${CMAKE_SOURCE_DIR}/extras/livearea/pic0.png sce_sys/pic0.png
-                ${CMAKE_SOURCE_DIR}/extras/livearea/startup.png sce_sys/livearea/contents/startup.png
-                ${CMAKE_SOURCE_DIR}/extras/livearea/bg0.png sce_sys/livearea/contents/bg0.png
-                ${CMAKE_SOURCE_DIR}/extras/livearea/template.xml sce_sys/livearea/contents/template.xml
-                ${CMAKE_SOURCE_DIR}/shaders/gxp gxp
+                ${VPK_FILES}
                 )
 
 add_custom_target(send

@@ -13,6 +13,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <psp2/kernel/clib.h>
 
 extern _Thread_local _egl_context* current_context;
 
@@ -283,13 +284,11 @@ EGLContext eglCreateContext(EGLDisplay dpy, EGLConfig config,
 
 EGLSurface eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig config,
                                    const EGLint *attrib_list) {
-    // Just something that is a valid pointer which can be freed later
     return strdup("pbuffer");
 }
 
 EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
                                   void * win, const EGLint *attrib_list) {
-    // Just something that is a valid pointer which can be freed later
     return strdup("window");
 }
 

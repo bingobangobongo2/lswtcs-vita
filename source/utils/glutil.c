@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
+#include <psp2/kernel/clib.h>
 
 _Thread_local _egl_context* current_context = NULL;
 
@@ -218,8 +219,18 @@ void load_shader(GLuint shader, const char * string, size_t length) {
 
         file_load(path, &buffer, &size);
 
-        glShaderBinary(1, &shader, 0, buffer, (int32_t) size);
+        // Newer vitaGL's glShaderBinary expects a serialized format:
+        // [uint32_t matrix_uniforms_count] [matrix data...] [GXP program]
+        // Raw GXP files start with "GXP\0" which gets misinterpreted as a
+        // huge matrix_uniforms_count. Prepend a zero count header.
+        size_t wrapped_size = sizeof(uint32_t) + size;
+        uint8_t *wrapped = malloc(wrapped_size);
+        memset(wrapped, 0, sizeof(uint32_t));  // 0 matrix uniforms
+        memcpy(wrapped + sizeof(uint32_t), buffer, size);
 
+        glShaderBinary(1, &shader, 0, wrapped, (int32_t) wrapped_size);
+
+        free(wrapped);
         free(buffer);
 #endif
     } else {
