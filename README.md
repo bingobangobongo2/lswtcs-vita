@@ -37,162 +37,81 @@ trademark(s) or any other registered trademark mentioned in this repository.
 This software does not contain the original code, executables, or other non-redistributable parts of the original game
 product. The authors of this work do not promote or condone piracy in any way. To launch and play the game on their PS
 Vita device, users must possess their own legally obtained copy of the game in the form of an .apk file.
+# LEGO Star Wars: The Complete Saga — v26b (Audio Fix, Clean Controls)
 
-Setup Instructions (For Players)
---------------------------------
+**Version**: v26b (2026-03-24)
+**Type**: Source build
+**For**: PS Vita with HENkaku/taiHEN
+**Bounty**: https://zealouschuck.com/ps-vita-bounty
 
-In order to properly install the game, you'll have to follow these steps precisely:
+## What's New in v26b (vs v26)
 
-- (Recommended) Make sure that you are either on 3.60 enso or 3.65 enso firmware version. Other versions may work too,
-  but no support is provided for them! If you experience any issues apart from those described in
-  the [Known Issues](#known-issues) section, please upgrade or downgrade your firmware accordingly before asking for
-  support.
+### Removed right stick byte overwrite
+v26 had a NuPadRead hook that wrote right stick values into left stick byte positions (nupad_s offsets 0xA2-0xA3), causing the right joystick to control character movement. v26b removes all right stick byte modifications — NuPadRead hook is passthrough only.
 
-- Install or update [kubridge][kubridge] and [FdFix][fdfix] by copying `kubridge.skprx` and `fd_fix.skprx` to your
-  taiHEN plugins folder (usually `ur0:tai`) and adding two entries to your `config.txt` under `*KERNEL`:
+### Audio unchanged from v26
+- Int32 accumulator mixer (no per-track clipping distortion)
+- SFX gain at -26dB (0.05f)
+- Distance attenuation gain timing fix
+- softfp ABI for OpenSLES
+
+## Current Status
+
+| Feature | Status |
+|---------|--------|
+| Graphics rendering | **Working** |
+| Music playback | **Working** |
+| Sound effects | **Working** (int32 mixer, -26dB SFX) |
+| SFX with many NPCs | **Fixed** (no per-track clipping distortion) |
+| SFX distance attenuation | **Working** (gain copy timing fix) |
+| Right stick camera | Not working (upstream .so limitation) |
+| Left stick movement | **Working** |
+| Gamepad controls | **Working** |
+| Touch input | **Working** |
+
+## Installation
+
+### Requirements
+- PS Vita on 3.60 or 3.65 enso firmware
+- kubridge.skprx v0.3.1+ (bythos14 fork) in `ur0:tai/`
+- fd_fix.skprx in `ur0:tai/` (unless using rePatch)
+- libshacccg.suprx in `ur0:data/`
+- LEGO Star Wars TCS Android APK v2.0.2.02 (build 20202) data files
+
+### Game Data Setup
+1. Extract `lib/armeabi-v7a/libTTapp.so` from the APK -> `ux0:data/lswtcs/libTTapp.so`
+2. Copy `Audio.dat`, `Levels.dat`, `Other.dat`, `Textures.dat` -> `ux0:data/lswtcs/`
+3. Verify libTTapp.so SHA-1: `291321330a3789414cab7d411dae64debc990ad6`
+
+### Install
+1. Transfer `lswtcs_v26b.vpk` to Vita
+2. Install via VitaShell (overwrites previous installation if present)
+3. Launch from LiveArea
+
+## Source Changes vs v26
+
+1. **patch.c**: NuPadRead hook changed to passthrough (no byte overwrites). Removes right stick leaking into movement controls.
+
+## Files
+
+| File | Description |
+|------|-------------|
+| `lswtcs_v26b.vpk` | Ready-to-install VPK |
+| `eboot_v26b.bin` | Compiled eboot binary (for FTP swap) |
+| `README.md` | This file |
+
+## Checksums
 
 ```
-  *KERNEL
-  ur0:tai/kubridge.skprx
-  ur0:tai/fd_fix.skprx
+SHA-256:
+7d6773b7697069016589a7fb9d0db01928bf56869b0cd304d8a1c9d40234638d  eboot_v26b.bin
+9e3599ef6bc5da558c3270e258ef96ec40e7c20661e92ca5d8d7ac20e58d0868  lswtcs_v26b.vpk
 ```
 
-```diff
-! ⚠️ Don't install `fd_fix.skprx` if you're using the rePatch plugin!
-```
+## Credits
 
-```diff
-- ⚠️ Even if you had `kubridge.skprx` installed before, most likely you still
-- need to update it, since a new version of the plugin was released at the same
-- time as this port. kubridge v0.3.1 or newer is required to run the game!
-```
-
-- Make sure you have `libshacccg.suprx` in the `ur0:/data/` folder on your console. If you don't,
-  use [ShaRKBR33D][shrkbrd] to get it quickly and easily.
-
-- <u>Legally</u> obtain your copy of Lego Star Wars: The Complete Saga for Android in a form of an `.apk` file and data
-  files. This port is tailored for the v2.0.2.02(20202) version of the game. **Older versions will not work**. Newer
-  versions may work, but no support is provided for them.
-
-    - If you have it installed on your phone, you can [get all the required files directly from it][unpack-on-phone] or
-      by using any APK extractor you can find on Google Play. **Note, this app uses split apks**.
-    - You can follow this [guide](https://gist.github.com/CatoTheYounger97/b7bacc48bf3fc041e673c8291edf871a) by
-      CatoTheYounger97 to help with extracting the data files.
-
-> ℹ️ Verify that your build is the correct one using **sha1sum** (can also be found as an online tool). sha1sum for
-> `lib/armeabi-v7a/libTTapp.so` **must** be `291321330a3789414cab7d411dae64debc990ad6`
-
-- Open the `.apk` with any zip explorer (like [7-Zip](https://www.7-zip.org/)) and extract the file
-  `lib/armeabi-v7a/libTTapp.so` from the `.apk` into `ux0:data/lswtcs/` on your Vita. Example of a correct resulting
-  path: `ux0:data/lswtcs/libTTapp.so`
-
-- Fetch the game data files from your device. You can find them in the internal data folder of the device, **rooted
-  device might be required**. Copy the file you find there (`Audio.dat`, `Levels.dat`, `Other.dat`, and `Textures.dat`)
-  to `ux0:data/lswtcs/` on your Vita. Example of a correct resulting path: `ux0:data/lswtcs/Audio.dat`.
-
-- Install `lswtcs.vpk` (from [Releases][latest-release]).
-
-- (Optional) Install [CapUnlocker](https://github.com/GrapheneCt/CapUnlocker). It may give you a bit better performance.
-
-Controls
---------
-
-|             Button             | Action                 |
-|:------------------------------:|:-----------------------|
-| Left stick/Directional buttons | Move                   |
-|            Triangle            | Tag (switch character) |
-|             Circle             | Special (build/use)    |
-|             Cross              | Jump                   |
-|             Square             | Action (attack)        |
-|             L1/L2              | Character toggle up    |
-|             R1/R2              | Character toggle down  |
-|             Start              | Start/Pause            |
-
-Touch screen/Touch pad can be used to interact with ui elements
-
-Known Issues
-------------
-
-- Intermittent crashing
-- Slow load times
-- Sounds are a bit off (not playing, playing too fast, abrupt transitions, etc.)
-
-Build Instructions (For Developers)
-----------------
-
-In order to build the loader, you'll need a [vitasdk](https://github.com/vitasdk) build fully compiled with softfp
-usage. The easiest way to obtain one is following the instructions on https://vitasdk.org/ while replacing the URL in
-this command:
-
-```bash
-git clone https://github.com/vitasdk/vdpm
-```
-
-Like this:
-
-```bash
-git clone https://github.com/vitasdk-softfp/vdpm
-```
-
-All the required libraries should get installed automatically if you follow the installation process
-from https://vitasdk.org/.
-
-### OpenSL ES
-
-A custom version of [OpenSL ES](https://github.com/gm666q/opensles) built with `LSWTCS=1` is required for the port to
-function correctly.
-
-After all these requirements are met, you can compile the loader with the following commands:
-
-```bash
-cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Debug # Or =Release if you don't want debug logging
-cmake --build build -j$(nproc)
-```
-
-Also note that this CMakeLists has two "convenience targets". While developing, I highly recommend using them, like
-this:
-
-```bash
-cmake --build build --target send # Build, upload eboot.bin and run (requires vitacompanion)
-cmake --build build --target dump # Fetch latest coredump and parse
-```
-
-For more information and build options, read the [CMakeLists](CMakeLists.txt).
-
-Credits
--------
-
-- [Andy "The FloW" Nguyen][flow] for the original .so loader.
-- [Rinnegatamante][rinne] for help with rendering and sound issues.
-- [Volodymyr Atamanenko][v-atamanenko] for
-  the [boilerplate template](https://github.com/v-atamanenko/soloader-boilerplate) and help with sound issues.
-- [GrapheneCt][graph] for CapUnlocker.
-- [CatoTheYounger97](https://github.com/CatoTheYounger97/) for help with the guide on how to get the APK and data files.
-
-License
--------
-
-This software may be modified and distributed under the terms of the MIT license. See the [LICENSE](LICENSE) file for
-details.
-
-[gtasa]: https://github.com/TheOfficialFloW/gtasa_vita
-
-[kubridge]: https://github.com/bythos14/kubridge/releases/
-
-[fdfix]: https://github.com/TheOfficialFloW/FdFix/releases/
-
-[unpack-on-phone]: https://stackoverflow.com/questions/11012976/how-do-i-get-the-apk-of-an-installed-app-without-root-access
-
-[shrkbrd]: https://github.com/Rinnegatamante/ShaRKBR33D/releases/latest
-
-[latest-release]: https://github.com/gm666q/lswtcs-vita/releases/latest
-
-[issue]: https://github.com/gm666q/lswtcs-vita/issues/new
-
-[flow]: https://github.com/TheOfficialFloW/
-
-[graph]: https://github.com/GrapheneCt/
-
-[rinne]: https://github.com/Rinnegatamante/
-
-[v-atamanenko]: https://github.com/v-atamanenko/
+- **gm666q** — Original LSWTCS Vita port
+- **Andy "The FloW" Nguyen** — Original .so loader
+- **Rinnegatamante** — vitaGL, vitashark
+- **Volodymyr Atamanenko** — soloader-boilerplate template
+- **v24-v26b fixes** — vitaGL update, DSA fixes, GXP loading, int32 mixer, SFX volume rebalancing, gain timing fix
