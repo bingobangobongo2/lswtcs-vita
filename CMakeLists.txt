@@ -109,7 +109,6 @@ add_dependencies(${CMAKE_PROJECT_NAME} SceLibcBridge)
 
 target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM
                            PUBLIC ${CMAKE_SOURCE_DIR}/lib
-                           PUBLIC ${CMAKE_SOURCE_DIR}/../../../tools
                            )
 
 target_include_directories(${CMAKE_PROJECT_NAME}
